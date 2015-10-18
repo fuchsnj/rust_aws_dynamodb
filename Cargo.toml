@@ -1,0 +1,18 @@
+[package]
+name = "aws_dynamodb"
+version = "0.1.0"
+authors = ["Nathan Fuchs <fuchsnj@gmail.com>"]
+
+[dependencies]
+regex = "0.1.41"
+rustc-serialize = "*"
+chrono = "*"
+hyper = "0.6.11"
+openssl = "*"
+time = "*"
+url = "*"
+xml-rs = "0.1.26"
+json_macros = "*"
+
+[dependencies.aws_core]
+git = "https://github.com/fuchsnj/rust_aws_core.git"
