@@ -1,6 +1,10 @@
 use std::collections::{HashSet, HashMap, BTreeMap};
 use rustc_serialize::json::{ToJson, Json};
-use aws_core::{AWSResult, AWSError};
+use rustc_serialize::json;
+use rustc_serialize::Encodable;
+use DynamoDbResult;
+use aws_core::AWSError;
+use error::DynamoDbError;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Number{
@@ -86,11 +90,17 @@ enum PrimaryKeyValue{
 }
 
 pub trait ToItem{
-	fn to_item(&self) -> AWSResult<Item>;
+	fn to_item(&self) -> DynamoDbResult<Item>;
 }
-impl ToItem for Json{
+/*impl ToItem for Json{
 	fn to_item(&self) -> AWSResult<Item>{
 		Item::from_json(self)
+	}
+}*/
+impl<T> ToItem for T where T: Encodable{
+	fn to_item(&self) -> DynamoDbResult<Item>{
+		let encoded = try!(json::encode(self));
+		Err(DynamoDbError::EncodingError)
 	}
 }
 
@@ -107,13 +117,13 @@ pub enum Item{
 	Map(HashMap<String, Item>)//M
 }
 impl Item{
-	fn from_typed_json(json: &Json) -> AWSResult<Item>{
+	fn from_typed_json(json: &Json) -> DynamoDbResult<Item>{
 		if let Some(val) = json.find("N"){
 			panic!("N");
 		}else if let Some(val) = json.find("S"){
 			match val.as_string(){
 				Some(value) => Ok(Item::String(value.to_owned())),
-				None => return Err(AWSError::protocol_error("type S must be a string"))
+				None => try!(Err(AWSError::protocol_error("type S must be a string")))
 			}
 		}else if let Some(val) = json.find("M"){
 			Item::from_typed_map(val)
@@ -140,7 +150,7 @@ impl Item{
 			_ => panic!("unknown variant: to_typed_json")
 		}
 	}
-	pub fn to_typed_map(&self) -> AWSResult<Json>{
+	pub fn to_typed_map(&self) -> DynamoDbResult<Json>{
 		match *self{
 			Item::Map(ref data) => {
 				let mut map = BTreeMap::new();
@@ -149,13 +159,13 @@ impl Item{
 				}
 				Ok(Json::Object(map))
 			},
-			_ => Err(AWSError::protocol_error("Top level type must be a Map"))
+			_ => try!(Err(AWSError::protocol_error("Top level type must be a Map")))
 		}
 	}
-	pub fn from_typed_map(json: &Json) -> AWSResult<Item>{
+	pub fn from_typed_map(json: &Json) -> DynamoDbResult<Item>{
 		let data = match json.as_object(){
 			Some(val) => val,
-			None => return Err(AWSError::protocol_error("invalid MAP data"))
+			None => try!(Err(AWSError::protocol_error("invalid MAP data")))
 		};
 		let mut map = HashMap::new();
 		for (key, value) in data{
@@ -163,7 +173,7 @@ impl Item{
 		}
 		Ok(Item::Map(map))
 	}
-	pub fn from_json(json: &Json) -> AWSResult<Item>{
+	pub fn from_json(json: &Json) -> DynamoDbResult<Item>{
 		match *json{
 			Json::Object(ref json) => {
 				let mut map = HashMap::new();
@@ -178,7 +188,7 @@ impl Item{
 			_ => panic!("unknown variant ToItem for Json")
 		}
 	}
-	pub fn to_json(&self) -> AWSResult<Json>{
+	pub fn to_json(&self) -> DynamoDbResult<Json>{
 		match *self{
 			Item::Map(ref map) => {
 				let mut json = BTreeMap::new();

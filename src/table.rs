@@ -1,6 +1,6 @@
 use DynamoDb;
 use types::{ToPrimaryKey, PrimaryKey, Item, ToItem};
-use aws_core::{AWSResult, Region, SignedRequest};
+use aws_core::{Region, SignedRequest};
 use std::io::Read;
 use rustc_serialize::json::{Json, ToJson};
 use std::fmt::Debug;
@@ -50,14 +50,10 @@ impl<T> PutItemRequest<T> where T: ToItem{
 		}
 	}
 	pub fn execute(&self) -> DynamoDbResult<()>{
-		let item:Item = try!(self.item.to_item());
+		/*let item:Item = try!(self.item.to_item());
 		println!("item to put: {:?}", item);
 		
 		let mut req = SignedRequest::new("POST", "dynamodb", Region::UsEast1, "/");
-		/*let mut json = json!({
-			"TableName": (self.table.get_name()),
-			"Item": (try!(item.to_typed_map()))
-		});*/
 		let mut map = BTreeMap::new();
 		map.insert("TableName".to_string(), self.table.get_name().to_json());
 		map.insert("Item".to_string(), try!(item.to_typed_map()));
@@ -72,10 +68,7 @@ impl<T> PutItemRequest<T> where T: ToItem{
 		let mut res = req.sign_and_execute(&creds);
 		let mut msg = String::new();
 		res.read_to_string(&mut msg).unwrap();
-		println!("res: {}", msg);
-		//let json = Json::from_str(&msg).unwrap();
-		//let item = json.find("Item").unwrap();
-		//Item::from_typed_map(item)
+		println!("res: {}", msg);*/
 		panic!("end of PutItem execute()");
 	}
 	pub fn condition(mut self, cond: Condition) -> PutItemRequest<T>{
@@ -95,7 +88,7 @@ impl GetItemRequest{
 			primary_key: primary_key
 		}
 	}
-	pub fn execute(self) -> AWSResult<Item>{
+	pub fn execute(self) -> DynamoDbResult<Item>{
 		let mut req = SignedRequest::new("POST", "dynamodb", Region::UsEast1, "/");
 		let json = json!({
 			"TableName": (self.table.get_name()),

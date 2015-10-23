@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 use condition::Condition;
 use error::DynamoDbError;
 
-type DynamoDbResult<T> = Result<T, DynamoDbError>;
+pub type DynamoDbResult<T> = Result<T, DynamoDbError>;
 
 
 
@@ -67,7 +67,7 @@ pub struct DynamoDb{
 
 
 impl DynamoDb{
-	fn new() -> DynamoDb{
+	pub fn new() -> DynamoDb{
 		DynamoDb{
 			shared_data: Arc::new(Mutex::new(
 				DynamoDbData{
@@ -76,20 +76,20 @@ impl DynamoDb{
 			))
 		}
 	}
-	fn get_credentials(&self) -> AWSResult<Credentials>{
+	pub fn get_credentials(&self) -> AWSResult<Credentials>{
 		match self.shared_data.lock().unwrap().credentials{
 			Some(ref creds) => Ok(creds.clone()),
 			None => Err(AWSError::NoCredentials)
 		}	
 	}
-	fn set_credentials(&mut self, id: &str, secret: &str){
+	pub fn set_credentials(&mut self, id: &str, secret: &str){
 		self.shared_data.lock().unwrap().credentials = Some(Credentials{
 			id: id.to_owned(),
 			secret: secret.to_owned(),
 			token: None
 		});
 	}
-	fn get_table(&self, name: &str) -> Table{
+	pub fn get_table(&self, name: &str) -> Table{
 		Table::new(self, name)
 	}
 	/*
