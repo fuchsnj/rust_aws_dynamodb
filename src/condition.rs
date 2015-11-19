@@ -7,8 +7,11 @@ impl Condition{
 			data: data.to_owned()
 		}
 	}
-	fn attribute_exists(attr: &str) -> Condition{
+	pub fn attribute_exists(attr: &str) -> Condition{
 		Condition::new(&format!("attribute_exists({})", attr))
+	}
+	pub fn attribute_not_exists(attr: &str) -> Condition{
+		Condition::new(&format!("attribute_not_exists({})", attr))
 	}
 	pub fn to_raw_string(&self) -> String{
 		self.data.clone()

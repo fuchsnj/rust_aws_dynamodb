@@ -1,6 +1,3 @@
-#![feature(plugin)]
-#![plugin(json_macros)]
-
 extern crate hyper;
 extern crate openssl;
 extern crate rustc_serialize;
@@ -10,8 +7,10 @@ extern crate time;
 extern crate url;
 extern crate xml;
 extern crate aws_core;
+#[macro_use(json)]
+extern crate json_macro;
 
-mod table;
+pub mod table;
 mod types;
 mod condition;
 mod error;
@@ -22,34 +21,11 @@ use std::io::Read;
 use rustc_serialize::json::{ToJson, Json};
 use std::collections::{HashSet, HashMap, BTreeMap};
 use std::sync::{Arc, Mutex};
-use condition::Condition;
-use error::DynamoDbError;
+
+pub use error::DynamoDbError;
+pub use condition::Condition;
 
 pub type DynamoDbResult<T> = Result<T, DynamoDbError>;
-
-
-
-
-#[test]
-fn it_works() {
-	let mut dynamo = DynamoDb::new();
-	dynamo.set_credentials("AKIAJPJRPMWISRZIBQYA", "y7tSfQa6bQcFH0QRgK3U2VKGfy5qoru+eb0QFy91");
-	//dynamo.list_tables();
-	//for _ in 0..200{
-	let users_table = dynamo.get_table("users");
-	//let item = users_table.get_item(("username", "test")).execute().unwrap();
-	//println!("item: {}", item.to_json().unwrap().pretty());
-	users_table.put_item(json!({
-		"username": "nathan",
-		"rand_data": {
-			"favorite_banana": "Jana"
-		}
-	}))
-	.condition(Condition::attribute_not_exists("username"))
-	.execute().unwrap();
-	//}
-	panic!("end of tests");
-}
 
 
 fn send_req(req: &mut SignedRequest, creds: &Credentials){
