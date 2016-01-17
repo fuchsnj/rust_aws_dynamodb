@@ -16,7 +16,6 @@ mod condition;
 mod error;
 
 use aws_core::{AWSError, AWSResult, Credentials, SignedRequest, Region};
-use table::Table;
 use std::io::Read;
 use rustc_serialize::json::{ToJson, Json};
 use std::collections::{HashSet, HashMap, BTreeMap};
@@ -24,6 +23,7 @@ use std::sync::{Arc, Mutex};
 
 pub use error::DynamoDbError;
 pub use condition::Condition;
+pub use table::Table;
 
 pub type DynamoDbResult<T> = Result<T, DynamoDbError>;
 

@@ -173,8 +173,21 @@ impl Item{
 			}
 		}else if let Some(val) = json.find("M"){
 			Item::from_typed_map(val)
+		}else if let Some(val) = json.find("NULL"){
+			Ok(Item::Null)
+		}else if let Some(val) = json.find("L"){
+			match val.as_array(){
+				Some(arr) => {
+					let mut output = Vec::new();
+					for a in arr{
+						output.push(try!(Item::from_typed_json(a)));
+					}
+					Ok(Item::List(output))
+				},
+				None => try!(Err(AWSError::protocol_error("type L must be an array")))
+			}
 		}else{
-			panic!("UNKNOWN: from_typed_json");
+			panic!("UNKNOWN: from_typed_json {:?}", json);
 		}
 	}
 	pub fn to_typed_json(&self) -> Json{
@@ -264,6 +277,14 @@ impl Item{
 				Ok(Json::Object(json))
 			},
 			Item::String(ref value) => Ok(Json::String(value.to_owned())),
+			Item::Null => Ok(Json::Null),
+			Item::List(ref value) => {
+				let mut output = Vec::new();
+				for item in value{
+					output.push(try!(Item::to_json(item)));
+				}
+				Ok(Json::Array(output))
+			},
 			_ => panic!("to_json: unknown type")
 		}
 	}
