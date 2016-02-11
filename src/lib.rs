@@ -1,24 +1,23 @@
+#![feature(custom_derive, custom_attribute, plugin)]
+#![plugin(serde_macros)]
+#![plugin(json_macros)]
+
 extern crate hyper;
 extern crate openssl;
-extern crate rustc_serialize;
-extern crate rustc_serialize as serialize;
 extern crate regex;
 extern crate time;
 extern crate url;
 extern crate xml;
 extern crate aws_core;
-#[macro_use(json)]
-extern crate json_macro;
+extern crate serde;
+extern crate serde_json;
 
 pub mod table;
-mod types;
+pub mod types;
 mod condition;
 mod error;
 
-use aws_core::{AWSError, AWSResult, Credentials, SignedRequest, Region};
-use std::io::Read;
-use rustc_serialize::json::{ToJson, Json};
-use std::collections::{HashSet, HashMap, BTreeMap};
+use aws_core::{AWSError, AWSResult, Credentials};
 use std::sync::{Arc, Mutex};
 
 pub use error::DynamoDbError;
@@ -26,11 +25,6 @@ pub use condition::Condition;
 pub use table::Table;
 
 pub type DynamoDbResult<T> = Result<T, DynamoDbError>;
-
-
-fn send_req(req: &mut SignedRequest, creds: &Credentials){
-	
-}
 
 struct DynamoDbData{
 	credentials: Option<Credentials>

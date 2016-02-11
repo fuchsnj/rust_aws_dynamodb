@@ -5,16 +5,21 @@ authors = ["Nathan Fuchs <fuchsnj@gmail.com>"]
 
 [dependencies]
 regex = "0.1.41"
-rustc-serialize = "*"
 chrono = "*"
 hyper = "0.7"
 openssl = "0.7"
 time = "*"
 url = "*"
 xml-rs = "0.1.26"
+serde_json = "0.6.0"
+serde = "0.6.1"
+validate = "0.2.1"
+serde_macros = "0.6.11"
 
 [dependencies.aws_core]
 git = "https://github.com/fuchsnj/rust_aws_core.git"
 
-[dependencies.json_macro]
-git = "https://github.com/fuchsnj/rust_json_macro"
+[dependencies.json_macros]
+version = "^0.3"
+default-features = false
+features = ["with-serde"]

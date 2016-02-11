@@ -1,28 +1,30 @@
 use std::collections::{HashSet, HashMap, BTreeMap};
-use rustc_serialize::json::{ToJson, Json};
-use rustc_serialize::json;
-use rustc_serialize::{Decodable, Encodable};
 use DynamoDbResult;
 use aws_core::AWSError;
-use error::DynamoDbError;
+use serde_json::value::Value as Json;
+use serde_json::value as json;
+use serde_json::{de, ser};
+use serde::de::Deserialize;
+use serde::ser::Serialize;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Number{
 	value: String
 }
-
+/*
 pub struct KeyValuePair{
 	key: String,
 	value: Item
-}
+}*/
 
 #[derive(Clone)]
 pub struct PrimaryKeyValuePair{
 	key: String,
 	value: PrimaryKeyValue
 }
+
 impl PrimaryKeyValuePair{
-	fn new<V>(key: &str, value: V) -> PrimaryKeyValuePair
+	pub fn new<V>(key: &str, value: V) -> PrimaryKeyValuePair
 	where V: ToPrimaryKeyValue{
 		PrimaryKeyValuePair{
 			key: key.to_owned(),
@@ -55,16 +57,14 @@ pub struct PrimaryKey{
 	range: Option<PrimaryKeyValuePair>
 }
 impl PrimaryKey{
-	fn hash<K>(key_value: K) -> PrimaryKey
+	pub fn new<K>(key_value: K) -> PrimaryKey
 	where K: ToPrimaryKeyValuePair{
 		PrimaryKey{
 			hash: key_value.to_primary_key_value_pair(),
 			range: None
 		}
 	}
-}
-impl ToJson for PrimaryKey{
-	fn to_json(&self) -> Json{
+	pub fn to_json(&self) -> Json{
 		let mut map = BTreeMap::new();
 		map.insert(self.hash.key.clone(), self.hash.value.to_json());
 		if let Some(ref range) = self.range{
@@ -73,19 +73,7 @@ impl ToJson for PrimaryKey{
 		Json::Object(map)
 	}
 }
-impl ToJson for PrimaryKeyValue{
-	fn to_json(&self) -> Json{
-		match *self{
-			PrimaryKeyValue::String(ref val) => json!({
-				"S" => (val)
-			}),
-			PrimaryKeyValue::Number(ref num) => json!({
-				"N" => (num.value)
-			}),
-			PrimaryKeyValue::Binary(ref val) => panic!("binary type not yet supported")
-		}
-	}
-}
+
 
 pub trait ToPrimaryKey{
 	fn to_primary_key(self) -> PrimaryKey;
@@ -116,10 +104,23 @@ where V1: ToPrimaryKeyValue, V2: ToPrimaryKeyValue{
 
 
 #[derive(Clone)]
-enum PrimaryKeyValue{
+pub enum PrimaryKeyValue{
 	String(String),
 	Number(Number),
 	Binary(Vec<u8>)
+}
+impl PrimaryKeyValue{
+	fn to_json(&self) -> Json{
+		match *self{
+			PrimaryKeyValue::String(ref val) => json!({
+				"S": (val)
+			}),
+			PrimaryKeyValue::Number(ref num) => json!({
+				"N": (num.value)
+			}),
+			PrimaryKeyValue::Binary(_) => panic!("binary type not yet supported")
+		}
+	}
 }
 
 pub trait ToItem{
@@ -130,22 +131,22 @@ pub trait ToItem{
 		Item::from_json(self)
 	}
 }*/
-impl<T> ToItem for T where T: Encodable{
+impl<T> ToItem for T where T: Serialize{
 	fn to_item(&self) -> DynamoDbResult<Item>{
-		let encoded = try!(json::encode(self));
-		println!("to_item: {}", encoded);
-		let json = try!(Json::from_str(&encoded));
+		let encoded = try!(ser::to_string(self));
+		println!("to_item: {:?}", encoded);
+		let json = try!(de::from_str(&encoded));
 		Item::from_json(&json)
 	}
 }
 
-pub trait FromItem{
+pub trait FromItem: Sized{
 	fn from_item(item: Item) -> DynamoDbResult<Self>;
 }
-impl<T> FromItem for T where T: Decodable{
+impl<T> FromItem for T where T: Deserialize{
 	fn from_item(item: Item) -> DynamoDbResult<T>{
 		let json = try!(item.to_json());
-		let decoded:T = try!(json::decode(&json.to_string()));
+		let decoded:T = try!(json::from_value(json));
 		Ok(decoded)
 	}
 }
@@ -164,7 +165,7 @@ pub enum Item{
 }
 impl Item{
 	fn from_typed_json(json: &Json) -> DynamoDbResult<Item>{
-		if let Some(val) = json.find("N"){
+		if let Some(_) = json.find("N"){
 			panic!("N");
 		}else if let Some(val) = json.find("S"){
 			match val.as_string(){
@@ -173,7 +174,7 @@ impl Item{
 			}
 		}else if let Some(val) = json.find("M"){
 			Item::from_typed_map(val)
-		}else if let Some(val) = json.find("NULL"){
+		}else if let Some(_) = json.find("NULL"){
 			Ok(Item::Null)
 		}else if let Some(val) = json.find("L"){
 			match val.as_array(){
@@ -198,12 +199,12 @@ impl Item{
 					map.insert(key.to_owned(), value.to_typed_json());
 				}
 				json!({
-					"M" => (Json::Object(map))
+					"M": (Json::Object(map))
 				})
 			},
 			Item::String(ref value) => {
 				json!({
-					"S" => (Json::String(value.to_owned()))
+					"S": (Json::String(value.to_owned()))
 				})
 			},
 			Item::List(ref array) => {
@@ -212,11 +213,11 @@ impl Item{
 					output.push(a.to_typed_json());
 				}
 				json!({
-					"L" => (Json::Array(output))
+					"L": (Json::Array(output))
 				})
 			},
 			Item::Null => json!({
-				"NULL" => ("true")
+				"NULL": ("true")
 			}),
 			ref variant @ _ => panic!("unknown variant in Item::to_typed_json: {:?}", variant)
 		}
@@ -293,7 +294,7 @@ impl Item{
 
 
 
-trait ToPrimaryKeyValue{
+pub trait ToPrimaryKeyValue{
 	fn to_primary_key_value(&self) -> PrimaryKeyValue;
 }
 impl ToPrimaryKeyValue for PrimaryKeyValue{
